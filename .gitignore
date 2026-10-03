@@ -1,0 +1,7 @@
+.idea
+uploads/
+.env
+weights
+*.pt
+.venv
+journal.json

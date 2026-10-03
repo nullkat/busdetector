@@ -1,0 +1,95 @@
+<head>
+<title>Автобусы на остановке</title>
+<style>
+  body {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #f2f2f2;
+    color: #222121;
+  }
+  h1 { color: #1c5595; }
+  form, #result {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  button, .download {
+    background: #1c5595;
+    color: #ffffff;
+    border: 0;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 16px;
+    text-decoration: none;
+    display: inline-block;
+  }
+  button:disabled { opacity: 0.6; }
+  #error { color: #ff0000; }
+  #count { font-size: 32px; font-weight: bold; }
+  #stats td { padding: 2px 16px 2px 0; }
+  img { max-width: 100%; display: block; margin: 10px 0; }
+</style>
+</head>
+<body>
+
+<h1>Автобусы на остановке</h1>
+
+<form id="form">
+  <input type="file" name="image" id="image" accept=".png,.jpg,.jpeg" required>
+  <img id="preview" hidden alt="Выбранное изображение">
+  <button type="submit" id="button">Посчитать автобусы</button>
+  <p id="error"></p>
+</form>
+
+<div id="result" hidden>
+  <div id="count"></div>
+  <table id="stats"></table>
+  <img id="marked" alt="Снимок с отмеченными автобусами">
+</div>
+
+<a class="download" href="/journal">Скачать журнал</a>
+
+<script>
+const form = document.getElementById('form');
+const imageInput = document.getElementById('image');
+const preview = document.getElementById('preview');
+const button = document.getElementById('button');
+const error = document.getElementById('error');
+
+imageInput.addEventListener('change', () => {
+  const file = imageInput.files[0];
+  preview.hidden = !file;
+  if (file) preview.src = URL.createObjectURL(file);
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  button.disabled = true;
+  button.textContent = 'Обработка...';
+
+  try {
+    const response = await fetch('/process_image', { method: 'POST', body: new FormData(form) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Ошибка сервера');
+
+    document.getElementById('count').textContent = 'Автобусов: ' + data.buses_count;
+    const ms = (value) => value.toFixed(1) + ' мс';
+    document.getElementById('stats').innerHTML = `
+      <tr><td>Предобработка</td><td>${ms(data.speed.preprocess)}</td></tr>
+      <tr><td>Инференс</td><td>${ms(data.speed.inference)}</td></tr>
+      <tr><td>Постобработка</td><td>${ms(data.speed.postprocess)}</td></tr>
+      <tr><td><b>Всего</b></td><td><b>${ms(data.total_time)}</b></td></tr>`;
+    document.getElementById('marked').src = data.marked_image_url;
+    document.getElementById('result').hidden = false;
+  } catch (err) {
+    error.textContent = err.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Посчитать автобусы';
+  }
+});
+</script>
+
+</body>
