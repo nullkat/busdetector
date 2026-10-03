@@ -19,6 +19,7 @@
 - Python
 - Flask
 - Ultralytics YOLOv8
+- OpenCV
 
 ---
 
